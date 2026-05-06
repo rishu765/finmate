@@ -390,7 +390,6 @@ async def upload_csv(file: UploadFile = File(...)):
     return {"message": "CSV uploaded successfully"}
 
 @app.get("/insights")
-@app.get("/insights")
 def get_insights():
     transactions = read_transactions()
 
