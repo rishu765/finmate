@@ -10,6 +10,7 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
+import { API_BASE_URL } from "./config";
 
 function App() {
   const [amount, setAmount] = useState("");
@@ -52,14 +53,14 @@ function App() {
   }, []);
 
   const fetchSmartSummary = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/smart-summary`);
+    const res = await fetch(`${API_BASE_URL}/smart-summary`);
     const data = await res.json();
 
     setSmartSummary(data.summary);
   };
 
   const handleSetIncome = async () => {
-    await fetch(`${import.meta.env.VITE_API_URL}/set-income`, {
+    await fetch(`${API_BASE_URL}/set-income`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -74,7 +75,7 @@ function App() {
   };
 
   const fetchSavings = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/savings-status`);
+    const res = await fetch(`${API_BASE_URL}/savings-status`);
     const data = await res.json();
     setSavingsData(data);
   };
@@ -85,7 +86,7 @@ function App() {
       return;
     }
 
-    await fetch(`${import.meta.env.VITE_API_URL}/set-category-budget`, {
+    await fetch(`${API_BASE_URL}/set-category-budget`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -103,7 +104,7 @@ function App() {
   };
 
   const fetchCategoryStatus = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/category-budget-status`);
+    const res = await fetch(`${API_BASE_URL}/category-budget-status`);
     const data = await res.json();
     setCategoryStatus(data);
   };
@@ -112,7 +113,7 @@ function App() {
     setLoadingAI(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/ai-insights`);
+      const res = await fetch(`${API_BASE_URL}/ai-insights`);
       const data = await res.json();
 
       setAiInsight(data.insight || "Error generating insight");
@@ -125,20 +126,20 @@ function App() {
 
   // 🔹 FETCH TRANSACTIONS
   const fetchTransactions = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/transactions`);
+    const res = await fetch(`${API_BASE_URL}/transactions`);
     const data = await res.json();
     setTransactions(data);
   };
 
   // 🔹 FETCH INSIGHTS
   const fetchInsights = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/insights`);
+    const res = await fetch(`${API_BASE_URL}/insights`);
     const data = await res.json();
     setInsights(data);
   };
 
   const handleSetBudget = async () => {
-    await fetch(`${import.meta.env.VITE_API_URL}/set-budget`, {
+    await fetch(`${API_BASE_URL}/set-budget`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -153,14 +154,14 @@ function App() {
   };
 
   const fetchBudgetStatus = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/budget-status`);
+    const res = await fetch(`${API_BASE_URL}/budget-status`);
     const data = await res.json();
     setBudgetStatus(data);
   };
 
   // 🔹 ADD TRANSACTION
   const handleSubmit = async () => {
-    await fetch(`${import.meta.env.VITE_API_URL}/add-transaction`, {
+    await fetch(`${API_BASE_URL}/add-transaction`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -189,7 +190,7 @@ function App() {
 
   const fetchBudgetComparison = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/budget-vs-actual`);
+      const res = await fetch(`${API_BASE_URL}/budget-vs-actual`);
       const data = await res.json();
 
       setBudgetComparison(data);
@@ -205,7 +206,7 @@ function App() {
     const formData = new FormData();
     formData.append("file", file);
 
-    await fetch(`${import.meta.env.VITE_API_URL}/upload-csv`, {
+    await fetch(`${API_BASE_URL}/upload-csv`, {
       method: "POST",
       body: formData,
     });
@@ -217,7 +218,7 @@ function App() {
 
   // 🔹 DELETE
   const handleDelete = async (index) => {
-    await fetch(`${import.meta.env.VITE_API_URL}/delete-transaction/${index}`, {
+    await fetch(`${API_BASE_URL}/delete-transaction/${index}`, {
       method: "DELETE",
     });
 
@@ -227,7 +228,7 @@ function App() {
   };
 
   const fetchMonthlyTrends = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/monthly-trends`);
+    const res = await fetch(`${API_BASE_URL}/monthly-trends`);
     const data = await res.json();
 
     // convert { "2026-05": 1500 } → chart format
