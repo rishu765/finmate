@@ -314,7 +314,7 @@ function App() {
       }}
     >
       <h1 style={{ textAlign: "center", marginBottom: "20px" }}>
-        💸 FinMate AI ok
+        💸 FinMate AI
       </h1>
 
       {/* 🧠 SMART SUMMARY */}
