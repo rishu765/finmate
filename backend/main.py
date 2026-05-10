@@ -25,11 +25,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# File path
-FILE_PATH = "data/transactions.csv"
-BUDGET_FILE = "data/budget.txt"
-CATEGORY_BUDGET_FILE = "data/category_budget.json"
-INCOME_FILE = "data/income.txt"
+DATA_DIR = "data"
+os.makedirs(DATA_DIR, exist_ok=True)
+
+FILE_PATH = os.path.join(DATA_DIR, "transactions.csv")
+BUDGET_FILE = os.path.join(DATA_DIR, "budget.txt")
+CATEGORY_BUDGET_FILE = os.path.join(DATA_DIR, "category_budget.json")
+INCOME_FILE = os.path.join(DATA_DIR, "income.txt")
 
 # Data model
 class Transaction(BaseModel):
