@@ -5,7 +5,13 @@ from datetime import datetime
 
 router = APIRouter()
 
-DATA_DIR = "data"
+# DATA_DIR = "data"
+# FILE_PATH = os.path.join(DATA_DIR, "transactions.csv")
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+DATA_DIR = os.path.join(BASE_DIR, "data")
+
 FILE_PATH = os.path.join(DATA_DIR, "transactions.csv")
 
 

@@ -9,10 +9,12 @@ from datetime import datetime
 from collections import defaultdict
 import json
 from routes.transactions import router as transaction_router
+from routes.budgets import router as budget_router
 
 
 app = FastAPI()
 app.include_router(transaction_router)
+app.include_router(budget_router)
 
 load_dotenv()
 
@@ -113,212 +115,10 @@ def smart_summary():
 
     return {"summary": summary}
 
-@app.post("/set-income")
-def set_income(data: dict):
-    amount = data.get("amount", 0)
-
-    with open(INCOME_FILE, "w") as f:
-        f.write(str(amount))
-
-    return {"message": "Income saved"}
-
-@app.get("/savings-status")
-def savings_status():
-    transactions = read_transactions()
-
-    # get income
-    if not os.path.exists(INCOME_FILE):
-        return {"message": "No income set"}
-
-    with open(INCOME_FILE, "r") as f:
-        income = float(f.read())
-
-    # current month
-    current_month = datetime.now().strftime("%Y-%m")
-
-    total_spent = 0
-
-    for t in transactions:
-        if t.get("date", "").startswith(current_month):
-            total_spent += t["amount"]
-
-    savings = income - total_spent
-    percent = (savings / income) * 100 if income > 0 else 0
-
-    status = ""
-
-    if percent < 10:
-        status = "⚠️ Very low savings"
-    elif percent < 30:
-        status = "🙂 Average savings"
-    else:
-        status = "💪 Great savings habit"
-
-    return {
-        "income": income,
-        "spent": total_spent,
-        "savings": savings,
-        "percent": percent,
-        "status": status
-    }
-
-
-@app.post("/set-category-budget")
-def set_category_budget(data: dict):
-    category = data.get("category")
-    amount = data.get("amount")
-
-    if not category or amount is None:
-        return {"error": "Invalid data"}
-
-    budgets = {}
-
-    if os.path.exists(CATEGORY_BUDGET_FILE):
-        with open(CATEGORY_BUDGET_FILE, "r") as f:
-            budgets = json.load(f)
-
-    budgets[category] = amount
-
-    with open(CATEGORY_BUDGET_FILE, "w") as f:
-        json.dump(budgets, f)
-
-    return {"message": "Category budget saved"}
-
-
-@app.get("/category-budgets")
-def get_category_budgets():
-    if not os.path.exists(CATEGORY_BUDGET_FILE):
-        return {}
-
-    with open(CATEGORY_BUDGET_FILE, "r") as f:
-        return json.load(f)
-    
-    
-@app.get("/category-budget-status")
-def category_budget_status():
-    transactions = read_transactions()
-
-    if not os.path.exists(CATEGORY_BUDGET_FILE):
-        return {}
-
-    with open(CATEGORY_BUDGET_FILE, "r") as f:
-        budgets = json.load(f)
-
-    current_month = datetime.now().strftime("%Y-%m")
-
-    spent = defaultdict(float)
-
-    # calculate spend per category
-    for t in transactions:
-        if t.get("date", "").startswith(current_month):
-            spent[t["category"]] += t["amount"]
-
-    result = []
-
-    for cat, budget in budgets.items():
-        used = spent.get(cat, 0)
-        percent = (used / budget) * 100 if budget > 0 else 0
-
-        alert = ""
-        if percent >= 100:
-            alert = "🚨 Over budget"
-        elif percent >= 80:
-            alert = "⚠️ Near limit"
-
-        result.append({
-            "category": cat,
-            "budget": budget,
-            "spent": used,
-            "percent": percent,
-            "alert": alert
-        })
-
-    return result
-
-
 # 🔹 ROOT
 @app.get("/")
 def read_root():
     return {"message": "FinMate backend running"}
-
-@app.post("/set-budget")
-def set_budget(data: dict):
-    amount = data.get("amount")
-
-    with open(BUDGET_FILE, "w") as f:
-        f.write(str(amount))
-
-    return {"message": "Budget saved"}
-
-@app.get("/get-budget")
-def get_budget():
-    if not os.path.exists(BUDGET_FILE):
-        return {"budget": 0}
-
-    with open(BUDGET_FILE, "r") as f:
-        value = f.read()
-
-    return {"budget": float(value)}
-
-@app.get("/budget-status")
-def budget_status():
-    transactions = read_transactions()
-
-    if not os.path.exists(BUDGET_FILE):
-        return {"message": "No budget set"}
-
-    with open(BUDGET_FILE, "r") as f:
-        budget = float(f.read())
-
-    current_month = datetime.now().strftime("%Y-%m")
-
-    monthly_spend = 0
-
-    for t in transactions:
-        if t.get("date", "").startswith(current_month):
-            monthly_spend += t["amount"]
-
-    percent = (monthly_spend / budget) * 100 if budget > 0 else 0
-
-    alert = ""
-
-    if percent >= 100:
-        alert = "🚨 Budget exceeded!"
-    elif percent >= 80:
-        alert = "⚠️ You have used 80% of your budget"
-
-    return {
-        "budget": budget,
-        "spent": monthly_spend,
-        "percent": percent,
-        "alert": alert
-    }
-
-@app.get("/budget-vs-actual")
-def budget_vs_actual():
-    transactions = read_transactions()
-
-    # get budget
-    if not os.path.exists(BUDGET_FILE):
-        return {"budget": 0, "spent": 0}
-
-    with open(BUDGET_FILE, "r") as f:
-        budget = float(f.read())
-
-    # calculate current month spend
-    current_month = datetime.now().strftime("%Y-%m")
-    spent = 0
-
-    for t in transactions:
-        if t.get("date", "").startswith(current_month):
-            spent += t["amount"]
-
-    return {
-        "budget": budget,
-        "spent": spent
-    }
-
-
 
 # 🔹 UPLOAD CSV (FIXED VERSION)
 @app.post("/upload-csv")
@@ -400,7 +200,6 @@ def monthly_trends():
 
     return monthly_data
 
-    
 @app.get("/ai-insights")
 def ai_insights():
     try:
@@ -439,4 +238,3 @@ def ai_insights():
 
     except Exception as e:
         return {"error": str(e)} 
-    

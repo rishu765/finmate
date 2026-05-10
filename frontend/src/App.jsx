@@ -42,6 +42,7 @@ function App() {
       : transactions.filter((t) => t.category === selectedCategory);
 
   useEffect(() => {
+    // console.log("working url - ", API_BASE_URL); // correct
     fetchTransactions();
     fetchInsights();
     fetchMonthlyTrends();
