@@ -26,10 +26,10 @@ app.add_middleware(
 )
 
 # File path
-FILE_PATH = "transactions.csv"
-BUDGET_FILE = "budget.txt"
-CATEGORY_BUDGET_FILE = "category_budget.json"
-INCOME_FILE = "income.txt"
+FILE_PATH = "data/transactions.csv"
+BUDGET_FILE = "data/budget.txt"
+CATEGORY_BUDGET_FILE = "data/category_budget.json"
+INCOME_FILE = "data/income.txt"
 
 # Data model
 class Transaction(BaseModel):
