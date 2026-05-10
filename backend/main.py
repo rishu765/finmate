@@ -8,9 +8,11 @@ from dotenv import load_dotenv
 from datetime import datetime
 from collections import defaultdict
 import json
+from routes.transactions import router as transaction_router
 
 
 app = FastAPI()
+app.include_router(transaction_router)
 
 load_dotenv()
 
@@ -316,52 +318,6 @@ def budget_vs_actual():
         "spent": spent
     }
 
-# 🔹 ADD TRANSACTION
-@app.post("/add-transaction")
-def add_transaction(transaction: dict):
-    file_exists = os.path.exists(FILE_PATH)
-
-    with open(FILE_PATH, mode="a", newline="") as file:
-        fieldnames = ["amount", "category", "description", "date"]
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-
-        if not file_exists:
-            writer.writeheader()
-
-        writer.writerow({
-            "amount": transaction["amount"],
-            "category": transaction["category"],
-            "description": transaction["description"],
-            "date": datetime.now().strftime("%Y-%m-%d")
-        })
-
-    return {"message": "Transaction added successfully"}
-
-# 🔹 GET ALL TRANSACTIONS
-@app.get("/transactions")
-def get_transactions():
-    return read_transactions()
-
-
-# 🔹 DELETE TRANSACTION
-@app.delete("/delete-transaction/{index}")
-def delete_transaction(index: int):
-    transactions = read_transactions()
-
-    if index < 0 or index >= len(transactions):
-        return {"error": "Invalid index"}
-
-    transactions.pop(index)
-
-    with open(FILE_PATH, mode="w", newline="") as file:
-        fieldnames = ["amount", "category", "description", "date"]
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-
-        for t in transactions:
-            writer.writerow(t)
-
-    return {"message": "Deleted successfully"}
 
 
 # 🔹 UPLOAD CSV (FIXED VERSION)
