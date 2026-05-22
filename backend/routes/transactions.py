@@ -2,83 +2,71 @@ from fastapi import APIRouter
 import csv
 import os
 from datetime import datetime
+from supabase_client import supabase
 
 router = APIRouter()
 
 # DATA_DIR = "data"
 # FILE_PATH = os.path.join(DATA_DIR, "transactions.csv")
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-DATA_DIR = os.path.join(BASE_DIR, "data")
+# DATA_DIR = os.path.join(BASE_DIR, "data")
 
-FILE_PATH = os.path.join(DATA_DIR, "transactions.csv")
+# FILE_PATH = os.path.join(DATA_DIR, "transactions.csv")
 
 
-def read_transactions():
-    transactions = []
+# def read_transactions():
+#     transactions = []
 
-    if not os.path.exists(FILE_PATH):
-        return transactions
+#     if not os.path.exists(FILE_PATH):
+#         return transactions
 
-    with open(FILE_PATH, mode="r") as file:
-        reader = csv.DictReader(file)
+#     with open(FILE_PATH, mode="r") as file:
+#         reader = csv.DictReader(file)
 
-        for row in reader:
-            transactions.append({
-                "amount": float(row["amount"]),
-                "category": row["category"],
-                "description": row["description"],
-                "date": row.get("date", "")
-            })
+#         for row in reader:
+#             transactions.append({
+#                 "amount": float(row["amount"]),
+#                 "category": row["category"],
+#                 "description": row["description"],
+#                 "date": row.get("date", "")
+#             })
 
-    return transactions
+#     return transactions
 
 
 @router.post("/add-transaction")
 def add_transaction(transaction: dict):
-    file_exists = os.path.exists(FILE_PATH)
 
-    with open(FILE_PATH, mode="a", newline="") as file:
-        fieldnames = ["amount", "category", "description", "date"]
+    response = supabase.table("transactions").insert({
+        "amount": transaction["amount"],
+        "category": transaction["category"],
+        "description": transaction["description"],
+        "created_at": datetime.utcnow().isoformat()
+    }).execute()
 
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-
-        if not file_exists:
-            writer.writeheader()
-
-        writer.writerow({
-            "amount": transaction["amount"],
-            "category": transaction["category"],
-            "description": transaction["description"],
-            "date": datetime.now().strftime("%Y-%m-%d")
-        })
-
-    return {"message": "Transaction added successfully"}
-
+    return {
+        "message": "Transaction added successfully",
+        "data": response.data
+    }
 
 @router.get("/transactions")
 def get_transactions():
-    return read_transactions()
 
+    response = (
+        supabase
+        .table("transactions")
+        .select("*")
+        .order("created_at", desc=True)
+        .execute()
+    )
 
-@router.delete("/delete-transaction/{index}")
-def delete_transaction(index: int):
-    transactions = read_transactions()
+    return response.data
 
-    if index < 0 or index >= len(transactions):
-        return {"error": "Invalid index"}
+@router.delete("/delete-transaction/{id}")
+def delete_transaction(id: int):
 
-    transactions.pop(index)
-
-    with open(FILE_PATH, mode="w", newline="") as file:
-        fieldnames = ["amount", "category", "description", "date"]
-
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-
-        writer.writeheader()
-
-        for t in transactions:
-            writer.writerow(t)
+    supabase.table("transactions").delete().eq("id", id).execute()
 
     return {"message": "Deleted successfully"}
