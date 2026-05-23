@@ -29,10 +29,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BUDGET_FILE = "data/budget.txt"
-CATEGORY_BUDGET_FILE = "data/category_budget.json"
-INCOME_FILE = "data/income.txt"
-
 # Data model
 class Transaction(BaseModel):
     amount: float
@@ -52,33 +48,60 @@ def smart_summary():
     if len(transactions) == 0:
         return {"summary": "No data available"}
 
-    # 🔹 total spend
     total_spent = sum(t["amount"] for t in transactions)
 
-    # 🔹 category breakdown
+    # category totals
     category_totals = {}
+
     for t in transactions:
-        category_totals[t["category"]] = category_totals.get(t["category"], 0) + t["amount"]
+        category_totals[t["category"]] = (
+            category_totals.get(t["category"], 0)
+            + t["amount"]
+        )
 
     top_category = max(category_totals, key=category_totals.get)
 
-    # 🔹 budget
+    # 🔹 GET BUDGET FROM SUPABASE
+    budget_response = (
+        supabase
+        .table("budgets")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
     budget = 0
-    if os.path.exists(BUDGET_FILE):
-        with open(BUDGET_FILE, "r") as f:
-            budget = float(f.read())
 
-    budget_percent = (total_spent / budget * 100) if budget > 0 else 0
+    if len(budget_response.data) > 0:
+        budget = budget_response.data[0]["amount"]
 
-    # 🔹 savings
+    budget_percent = (
+        (total_spent / budget) * 100
+        if budget > 0 else 0
+    )
+
+    # 🔹 GET INCOME FROM SUPABASE
+    income_response = (
+        supabase
+        .table("incomes")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
     income = 0
-    if os.path.exists(INCOME_FILE):
-        with open(INCOME_FILE, "r") as f:
-            income = float(f.read())
 
-    savings_percent = ((income - total_spent) / income * 100) if income > 0 else 0
+    if len(income_response.data) > 0:
+        income = income_response.data[0]["amount"]
 
-    # 🔥 FINAL SUMMARY LOGIC
+    savings_percent = (
+        ((income - total_spent) / income) * 100
+        if income > 0 else 0
+    )
+
+    # SUMMARY
     summary = f"You spent ₹{int(total_spent)} this month. "
 
     summary += f"{top_category} is your top category. "
@@ -89,13 +112,19 @@ def smart_summary():
     if income > 0:
         summary += f"Your savings rate is {int(savings_percent)}%. "
 
-    # smart advice
+    # advice
     if budget_percent > 80:
         summary += "⚠️ You are close to exceeding your budget. "
-    if savings_percent < 20:
-        summary += "⚠️ Your savings are low. Try reducing discretionary spending."
 
-    return {"summary": summary}
+    if savings_percent < 20:
+        summary += (
+            "⚠️ Your savings are low. "
+            "Try reducing discretionary spending."
+        )
+
+    return {
+        "summary": summary
+    }
 
 # 🔹 ROOT
 @app.get("/")

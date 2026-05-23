@@ -1,71 +1,57 @@
 from fastapi import APIRouter
 from collections import defaultdict
 from datetime import datetime
-import json
-import csv
-import os
+from supabase_client import supabase
 
 router = APIRouter()
 
-# DATA_DIR = "data"
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-DATA_DIR = os.path.join(BASE_DIR, "data")
-
-FILE_PATH = os.path.join(DATA_DIR, "transactions.csv")
-BUDGET_FILE = os.path.join(DATA_DIR, "budget.txt")
-CATEGORY_BUDGET_FILE = os.path.join(DATA_DIR, "category_budget.json")
-INCOME_FILE = os.path.join(DATA_DIR, "income.txt")
-
-
 def read_transactions():
-    transactions = []
-
-    if not os.path.exists(FILE_PATH):
-        return transactions
-
-    with open(FILE_PATH, mode="r") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-            transactions.append({
-                "amount": float(row["amount"]),
-                "category": row["category"],
-                "description": row["description"],
-                "date": row.get("date", "")
-            })
-
-    return transactions
-
+    response = supabase.table("transactions").select("*").execute()
+    return response.data
 
 @router.post("/set-budget")
 def set_budget(data: dict):
     amount = data.get("amount")
 
-    with open(BUDGET_FILE, "w") as f:
-        f.write(str(amount))
+    supabase.table("budgets").insert({
+        "amount": amount
+    }).execute()
 
     return {"message": "Budget saved"}
 
 @router.get("/get-budget")
 def get_budget():
-    if not os.path.exists(BUDGET_FILE):
+    response = (
+        supabase
+        .table("budgets")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if len(response.data) == 0:
         return {"budget": 0}
 
-    with open(BUDGET_FILE, "r") as f:
-        value = f.read()
-
-    return {"budget": float(value)}
+    return {"budget": response.data[0]["amount"]}
 
 @router.get("/budget-status")
 def budget_status():
     transactions = read_transactions()
 
-    if not os.path.exists(BUDGET_FILE):
+    budget_response = (
+        supabase
+        .table("budgets")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if len(budget_response.data) == 0:
         return {"message": "No budget set"}
 
-    with open(BUDGET_FILE, "r") as f:
-        budget = float(f.read())
+    budget = budget_response.data[0]["amount"]
 
     current_month = datetime.now().strftime("%Y-%m")
 
@@ -91,16 +77,26 @@ def budget_status():
         "alert": alert
     }
 
-
 @router.get("/budget-vs-actual")
 def budget_vs_actual():
     transactions = read_transactions()
 
-    if not os.path.exists(BUDGET_FILE):
-        return {"budget": 0, "spent": 0}
+    budget_response = (
+        supabase
+        .table("budgets")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
 
-    with open(BUDGET_FILE, "r") as f:
-        budget = float(f.read())
+    if len(budget_response.data) == 0:
+        return {
+            "budget": 0,
+            "spent": 0
+        }
+
+    budget = budget_response.data[0]["amount"]
 
     current_month = datetime.now().strftime("%Y-%m")
 
@@ -115,26 +111,33 @@ def budget_vs_actual():
         "spent": spent
     }
 
-
 @router.post("/set-income")
 def set_income(data: dict):
     amount = data.get("amount", 0)
 
-    with open(INCOME_FILE, "w") as f:
-        f.write(str(amount))
+    supabase.table("incomes").insert({
+        "amount": amount
+    }).execute()
 
     return {"message": "Income saved"}
-
 
 @router.get("/savings-status")
 def savings_status():
     transactions = read_transactions()
 
-    if not os.path.exists(INCOME_FILE):
+    income_response = (
+        supabase
+        .table("incomes")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if len(income_response.data) == 0:
         return {"message": "No income set"}
 
-    with open(INCOME_FILE, "r") as f:
-        income = float(f.read())
+    income = income_response.data[0]["amount"]
 
     current_month = datetime.now().strftime("%Y-%m")
 
@@ -165,14 +168,6 @@ def savings_status():
         "status": status
     }
 
-@router.get("/category-budgets")
-def get_category_budgets():
-    if not os.path.exists(CATEGORY_BUDGET_FILE):
-        return {}
-
-    with open(CATEGORY_BUDGET_FILE, "r") as f:
-        return json.load(f)
-
 @router.post("/set-category-budget")
 def set_category_budget(data: dict):
     category = data.get("category")
@@ -181,29 +176,25 @@ def set_category_budget(data: dict):
     if not category or amount is None:
         return {"error": "Invalid data"}
 
-    budgets = {}
-
-    if os.path.exists(CATEGORY_BUDGET_FILE):
-        with open(CATEGORY_BUDGET_FILE, "r") as f:
-            budgets = json.load(f)
-
-    budgets[category] = amount
-
-    with open(CATEGORY_BUDGET_FILE, "w") as f:
-        json.dump(budgets, f)
+    supabase.table("category_budgets").insert({
+        "category": category,
+        "amount": amount
+    }).execute()
 
     return {"message": "Category budget saved"}
-
 
 @router.get("/category-budget-status")
 def category_budget_status():
     transactions = read_transactions()
 
-    if not os.path.exists(CATEGORY_BUDGET_FILE):
-        return []
+    budget_response = (
+        supabase
+        .table("category_budgets")
+        .select("*")
+        .execute()
+    )
 
-    with open(CATEGORY_BUDGET_FILE, "r") as f:
-        budgets = json.load(f)
+    budgets = budget_response.data
 
     current_month = datetime.now().strftime("%Y-%m")
 
@@ -215,7 +206,10 @@ def category_budget_status():
 
     result = []
 
-    for cat, budget in budgets.items():
+    for item in budgets:
+        cat = item["category"]
+        budget = item["amount"]
+
         used = spent.get(cat, 0)
 
         percent = (used / budget) * 100 if budget > 0 else 0
