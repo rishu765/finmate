@@ -1,7 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import csv
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -10,6 +9,7 @@ from collections import defaultdict
 import json
 from routes.transactions import router as transaction_router
 from routes.budgets import router as budget_router
+from supabase_client import supabase
 
 
 app = FastAPI()
@@ -29,13 +29,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATA_DIR = "data"
-os.makedirs(DATA_DIR, exist_ok=True)
-
-FILE_PATH = os.path.join(DATA_DIR, "transactions.csv")
-BUDGET_FILE = os.path.join(DATA_DIR, "budget.txt")
-CATEGORY_BUDGET_FILE = os.path.join(DATA_DIR, "category_budget.json")
-INCOME_FILE = os.path.join(DATA_DIR, "income.txt")
+BUDGET_FILE = "data/budget.txt"
+CATEGORY_BUDGET_FILE = "data/category_budget.json"
+INCOME_FILE = "data/income.txt"
 
 # Data model
 class Transaction(BaseModel):
@@ -43,25 +39,11 @@ class Transaction(BaseModel):
     category: str
     description: str
 
-
-# 🔹 READ FROM CSV
 def read_transactions():
-    transactions = []
+    response = supabase.table("transactions").select("*").execute()
 
-    if not os.path.exists(FILE_PATH):
-        return transactions
+    return response.data
 
-    with open(FILE_PATH, mode="r") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            transactions.append({
-                "amount": float(row["amount"]),
-                "category": row["category"],
-                "description": row["description"],
-                "date": row.get("date", "")
-            })
-
-    return transactions
 
 @app.get("/smart-summary")
 def smart_summary():
@@ -120,30 +102,22 @@ def smart_summary():
 def read_root():
     return {"message": "FinMate backend running"}
 
-# 🔹 UPLOAD CSV (FIXED VERSION)
 @app.post("/upload-csv")
 async def upload_csv(file: UploadFile = File(...)):
     content = await file.read()
     decoded = content.decode("utf-8").splitlines()
 
+    import csv
+
     reader = csv.DictReader(decoded)
 
-    file_exists = os.path.exists(FILE_PATH)
-    
-    with open(FILE_PATH, mode="a", newline="") as file_obj:
-        fieldnames = ["amount", "category", "description", "date"]
-        writer = csv.DictWriter(file_obj, fieldnames=fieldnames)
-
-        if not file_exists:
-            writer.writeheader()
-
-        for row in reader:
-            writer.writerow({
-                "amount": float(row["amount"]),
-                "category": row["category"],
-                "description": row["description"],
-                "date": datetime.now().strftime("%Y-%m-%d")
-            })
+    for row in reader:
+        supabase.table("transactions").insert({
+            "amount": float(row["amount"]),
+            "category": row["category"],
+            "description": row["description"],
+            "date": datetime.now().strftime("%Y-%m-%d")
+        }).execute()
 
     return {"message": "CSV uploaded successfully"}
 
