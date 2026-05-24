@@ -11,8 +11,13 @@ import {
   Cell,
 } from "recharts";
 import { API_BASE_URL } from "./config";
+import { supabase } from "./supabase";
 
 function App() {
+  const [session, setSession] = useState(null);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
@@ -42,6 +47,20 @@ function App() {
       : transactions.filter((t) => t.category === selectedCategory);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
     // console.log("working url - ", API_BASE_URL); // correct
     fetchTransactions();
     fetchInsights();
@@ -53,8 +72,42 @@ function App() {
     fetchSmartSummary();
   }, []);
 
+  const handleSignup = async () => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert(error.message);
+    } else {
+      alert("Signup successful");
+    }
+  };
+
+  const handleLogin = async () => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert(error.message);
+    } else {
+      alert("Login successful");
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
   const fetchSmartSummary = async () => {
-    const res = await fetch(`${API_BASE_URL}/smart-summary`);
+    const res = await fetch(`${API_BASE_URL}/smart-summary`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
     const data = await res.json();
 
     setSmartSummary(data.summary);
@@ -65,6 +118,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         amount: parseFloat(income),
@@ -76,7 +130,11 @@ function App() {
   };
 
   const fetchSavings = async () => {
-    const res = await fetch(`${API_BASE_URL}/savings-status`);
+    const res = await fetch(`${API_BASE_URL}/savings-status`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
     const data = await res.json();
     setSavingsData(data);
   };
@@ -91,6 +149,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         category: budgetCategory,
@@ -114,7 +173,11 @@ function App() {
     setLoadingAI(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/ai-insights`);
+      const res = await fetch(`${API_BASE_URL}/ai-insights`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
       const data = await res.json();
 
       setAiInsight(data.insight || "Error generating insight");
@@ -127,14 +190,23 @@ function App() {
 
   // 🔹 FETCH TRANSACTIONS
   const fetchTransactions = async () => {
-    const res = await fetch(`${API_BASE_URL}/transactions`);
+    const res = await fetch(`${API_BASE_URL}/transactions`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
     const data = await res.json();
     setTransactions(data);
   };
 
   // 🔹 FETCH INSIGHTS
   const fetchInsights = async () => {
-    const res = await fetch(`${API_BASE_URL}/insights`);
+    const res = await fetch(`${API_BASE_URL}/insights`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
     const data = await res.json();
     setInsights(data);
   };
@@ -144,6 +216,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         amount: parseFloat(budget),
@@ -155,7 +228,11 @@ function App() {
   };
 
   const fetchBudgetStatus = async () => {
-    const res = await fetch(`${API_BASE_URL}/budget-status`);
+    const res = await fetch(`${API_BASE_URL}/budget-status`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
     const data = await res.json();
     setBudgetStatus(data);
   };
@@ -166,6 +243,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         amount: parseFloat(amount),
@@ -191,7 +269,11 @@ function App() {
 
   const fetchBudgetComparison = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/budget-vs-actual`);
+      const res = await fetch(`${API_BASE_URL}/budget-vs-actual`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
       const data = await res.json();
 
       setBudgetComparison(data);
@@ -209,6 +291,9 @@ function App() {
 
     await fetch(`${API_BASE_URL}/upload-csv`, {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
       body: formData,
     });
 
@@ -221,6 +306,9 @@ function App() {
   const handleDelete = async (index) => {
     await fetch(`${API_BASE_URL}/delete-transaction/${index}`, {
       method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
     });
 
     fetchTransactions();
@@ -229,7 +317,11 @@ function App() {
   };
 
   const fetchMonthlyTrends = async () => {
-    const res = await fetch(`${API_BASE_URL}/monthly-trends`);
+    const res = await fetch(`${API_BASE_URL}/monthly-trends`, {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
     const data = await res.json();
 
     // convert { "2026-05": 1500 } → chart format
@@ -302,6 +394,90 @@ function App() {
     borderRadius: "10px",
   };
 
+  if (!session) {
+    return (
+      <div
+        style={{
+          background: "#0f172a",
+          minHeight: "100vh",
+          color: "white",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <div
+          style={{
+            background: "#1e293b",
+            padding: "30px",
+            borderRadius: "12px",
+            width: "320px",
+          }}
+        >
+          <h2>FinMate Login</h2>
+
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px",
+              marginTop: "10px",
+              borderRadius: "8px",
+              border: "none",
+            }}
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px",
+              marginTop: "10px",
+              borderRadius: "8px",
+              border: "none",
+            }}
+          />
+
+          <button
+            onClick={handleLogin}
+            style={{
+              width: "100%",
+              padding: "10px",
+              marginTop: "15px",
+              background: "#6366f1",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+            }}
+          >
+            Login
+          </button>
+
+          <button
+            onClick={handleSignup}
+            style={{
+              width: "100%",
+              padding: "10px",
+              marginTop: "10px",
+              background: "#22c55e",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+            }}
+          >
+            Signup
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -317,6 +493,20 @@ function App() {
       <h1 style={{ textAlign: "center", marginBottom: "20px" }}>
         💸 FinMate AI
       </h1>
+
+      <button
+        onClick={handleLogout}
+        style={{
+          background: "#ef4444",
+          color: "white",
+          border: "none",
+          padding: "8px 15px",
+          borderRadius: "8px",
+          marginBottom: "20px",
+        }}
+      >
+        Logout
+      </button>
 
       {/* 🧠 SMART SUMMARY */}
       {smartSummary && (
