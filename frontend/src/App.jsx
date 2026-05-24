@@ -61,7 +61,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // console.log("working url - ", API_BASE_URL); // correct
+    if (!session) return;
+
     fetchTransactions();
     fetchInsights();
     fetchMonthlyTrends();
@@ -70,7 +71,7 @@ function App() {
     fetchSavings();
     fetchBudgetComparison();
     fetchSmartSummary();
-  }, []);
+  }, [session]);
 
   const handleSignup = async () => {
     const { error } = await supabase.auth.signUp({
@@ -105,7 +106,7 @@ function App() {
   const fetchSmartSummary = async () => {
     const res = await fetch(`${API_BASE_URL}/smart-summary`, {
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
     });
     const data = await res.json();
@@ -118,7 +119,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
       body: JSON.stringify({
         amount: parseFloat(income),
@@ -132,7 +133,7 @@ function App() {
   const fetchSavings = async () => {
     const res = await fetch(`${API_BASE_URL}/savings-status`, {
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
     });
     const data = await res.json();
@@ -149,7 +150,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
       body: JSON.stringify({
         category: budgetCategory,
@@ -175,7 +176,7 @@ function App() {
     try {
       const res = await fetch(`${API_BASE_URL}/ai-insights`, {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session?.access_token}`,
         },
       });
       const data = await res.json();
@@ -192,7 +193,7 @@ function App() {
   const fetchTransactions = async () => {
     const res = await fetch(`${API_BASE_URL}/transactions`, {
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
     });
 
@@ -204,7 +205,7 @@ function App() {
   const fetchInsights = async () => {
     const res = await fetch(`${API_BASE_URL}/insights`, {
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
     });
     const data = await res.json();
@@ -216,7 +217,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
       body: JSON.stringify({
         amount: parseFloat(budget),
@@ -230,7 +231,7 @@ function App() {
   const fetchBudgetStatus = async () => {
     const res = await fetch(`${API_BASE_URL}/budget-status`, {
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
     });
     const data = await res.json();
@@ -243,7 +244,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
       body: JSON.stringify({
         amount: parseFloat(amount),
@@ -271,7 +272,7 @@ function App() {
     try {
       const res = await fetch(`${API_BASE_URL}/budget-vs-actual`, {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session?.access_token}`,
         },
       });
       const data = await res.json();
@@ -292,7 +293,7 @@ function App() {
     await fetch(`${API_BASE_URL}/upload-csv`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
       body: formData,
     });
@@ -307,7 +308,7 @@ function App() {
     await fetch(`${API_BASE_URL}/delete-transaction/${index}`, {
       method: "DELETE",
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
     });
 
@@ -319,7 +320,7 @@ function App() {
   const fetchMonthlyTrends = async () => {
     const res = await fetch(`${API_BASE_URL}/monthly-trends`, {
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
     });
     const data = await res.json();
