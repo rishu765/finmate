@@ -127,6 +127,7 @@ function App() {
     });
 
     setIncome("");
+
     fetchSavings();
   };
 
