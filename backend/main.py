@@ -36,15 +36,20 @@ class Transaction(BaseModel):
     category: str
     description: str
 
-def read_transactions():
-    response = supabase.table("transactions").select("*").execute()
+def read_transactions(user_id: str):
+    response = (
+        supabase
+        .table("transactions")
+        .select("*")
+        .eq("user_id", user_id)
+        .execute()
+    )
 
     return response.data
 
-
 @app.get("/smart-summary")
-def smart_summary():
-    transactions = read_transactions()
+def smart_summary(user_id: str = Depends(get_current_user)):
+    transactions = read_transactions(user_id)
 
     if len(transactions) == 0:
         return {"summary": "No data available"}
@@ -156,8 +161,8 @@ async def upload_csv(
     return {"message": "CSV uploaded successfully"}
 
 @app.get("/insights")
-def get_insights():
-    transactions = read_transactions()
+def get_insights(user_id: str = Depends(get_current_user)):
+    transactions = read_transactions(user_id)
 
     if len(transactions) == 0:
         return {"message": "No data"}
@@ -194,8 +199,8 @@ def get_insights():
     
     
 @app.get("/monthly-trends")
-def monthly_trends():
-    transactions = read_transactions()
+def monthly_trends(user_id: str = Depends(get_current_user)):
+    transactions = read_transactions(user_id)
 
     monthly_data = defaultdict(float)
 
@@ -209,9 +214,9 @@ def monthly_trends():
     return monthly_data
 
 @app.get("/ai-insights")
-def ai_insights():
+def ai_insights(user_id: str = Depends(get_current_user)):
     try:
-        transactions = read_transactions()
+        transactions = read_transactions(user_id)
 
         if len(transactions) == 0:
             return {"insight": "No transactions available"}

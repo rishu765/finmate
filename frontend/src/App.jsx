@@ -166,7 +166,11 @@ function App() {
   };
 
   const fetchCategoryStatus = async () => {
-    const res = await fetch(`${API_BASE_URL}/category-budget-status`);
+    const res = await fetch(`${API_BASE_URL}/category-budget-status`, {
+      headers: {
+        Authorization: `Bearer ${session?.access_token}`,
+      },
+    });
     const data = await res.json();
     setCategoryStatus(data);
   };
@@ -306,7 +310,7 @@ function App() {
 
   // 🔹 DELETE
   const handleDelete = async (transactionId) => {
-    await fetch(`${API_BASE_URL}/delete-transaction/${id}`, {
+    await fetch(`${API_BASE_URL}/delete-transaction/${transactionId}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${session.access_token}`,
