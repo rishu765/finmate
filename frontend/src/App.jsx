@@ -249,7 +249,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
       body: JSON.stringify({
         amount: parseFloat(amount),
@@ -313,7 +313,7 @@ function App() {
     await fetch(`${API_BASE_URL}/delete-transaction/${transactionId}`, {
       method: "DELETE",
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
     });
 
