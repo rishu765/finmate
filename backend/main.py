@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
@@ -10,6 +10,7 @@ import json
 from routes.transactions import router as transaction_router
 from routes.budgets import router as budget_router
 from supabase_client import supabase
+from auth import get_current_user
 
 
 app = FastAPI()
@@ -132,7 +133,10 @@ def read_root():
     return {"message": "FinMate backend running"}
 
 @app.post("/upload-csv")
-async def upload_csv(file: UploadFile = File(...)):
+async def upload_csv(
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_current_user)
+    ):
     content = await file.read()
     decoded = content.decode("utf-8").splitlines()
 
@@ -145,7 +149,8 @@ async def upload_csv(file: UploadFile = File(...)):
             "amount": float(row["amount"]),
             "category": row["category"],
             "description": row["description"],
-            "date": datetime.now().strftime("%Y-%m-%d")
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "user_id": user_id
         }).execute()
 
     return {"message": "CSV uploaded successfully"}

@@ -245,7 +245,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         amount: parseFloat(amount),
@@ -305,11 +305,11 @@ function App() {
   };
 
   // 🔹 DELETE
-  const handleDelete = async (index) => {
-    await fetch(`${API_BASE_URL}/delete-transaction/${index}`, {
+  const handleDelete = async (transactionId) => {
+    await fetch(`${API_BASE_URL}/delete-transaction/${id}`, {
       method: "DELETE",
       headers: {
-        Authorization: `Bearer ${session?.access_token}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
     });
 
@@ -792,14 +792,14 @@ function App() {
           ))}
         </select>
 
-        {filteredTransactions.map((t, index) => (
-          <div key={index} style={txn}>
+        {filteredTransactions.map((t) => (
+          <div key={t.id} style={txn}>
             <strong>₹{t.amount}</strong>
             <p>
               {t.category} • {t.description}
             </p>
 
-            <button onClick={() => handleDelete(index)} style={deleteBtn}>
+            <button onClick={() => handleDelete(t.id)} style={deleteBtn}>
               Delete
             </button>
           </div>

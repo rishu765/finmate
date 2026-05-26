@@ -1,72 +1,64 @@
-from fastapi import APIRouter
-import csv
-import os
-from datetime import datetime
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from supabase_client import supabase
+from auth import get_current_user
+from datetime import datetime
 
 router = APIRouter()
 
-# DATA_DIR = "data"
-# FILE_PATH = os.path.join(DATA_DIR, "transactions.csv")
 
-# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# DATA_DIR = os.path.join(BASE_DIR, "data")
-
-# FILE_PATH = os.path.join(DATA_DIR, "transactions.csv")
+class Transaction(BaseModel):
+    amount: float
+    category: str
+    description: str
 
 
-# def read_transactions():
-#     transactions = []
-
-#     if not os.path.exists(FILE_PATH):
-#         return transactions
-
-#     with open(FILE_PATH, mode="r") as file:
-#         reader = csv.DictReader(file)
-
-#         for row in reader:
-#             transactions.append({
-#                 "amount": float(row["amount"]),
-#                 "category": row["category"],
-#                 "description": row["description"],
-#                 "date": row.get("date", "")
-#             })
-
-#     return transactions
-
-
-@router.post("/add-transaction")
-def add_transaction(transaction: dict):
-
-    response = supabase.table("transactions").insert({
-        "amount": transaction["amount"],
-        "category": transaction["category"],
-        "description": transaction["description"],
-        "created_at": datetime.utcnow().isoformat()
-    }).execute()
-
-    return {
-        "message": "Transaction added successfully",
-        "data": response.data
-    }
-
+# 🔹 GET USER TRANSACTIONS
 @router.get("/transactions")
-def get_transactions():
+def get_transactions(user_id: str = Depends(get_current_user)):
 
     response = (
         supabase
         .table("transactions")
         .select("*")
-        .order("created_at", desc=True)
+        .eq("user_id", user_id)
+        .order("id", desc=True)
         .execute()
     )
 
     return response.data
 
-@router.delete("/delete-transaction/{id}")
-def delete_transaction(id: int):
 
-    supabase.table("transactions").delete().eq("id", id).execute()
+# 🔹 ADD TRANSACTION
+@router.post("/add-transaction")
+def add_transaction(
+    transaction: Transaction,
+    user_id: str = Depends(get_current_user)
+):
 
-    return {"message": "Deleted successfully"}
+    supabase.table("transactions").insert({
+        "amount": transaction.amount,
+        "category": transaction.category,
+        "description": transaction.description,
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "user_id": user_id
+    }).execute()
+
+    return {"message": "Transaction added successfully"}
+
+
+# 🔹 DELETE TRANSACTION
+@router.delete("/delete-transaction/{transaction_id}")
+def delete_transaction(
+    transaction_id: int,
+    user_id: str = Depends(get_current_user)
+):
+
+    # delete ONLY if transaction belongs to current user
+    supabase.table("transactions") \
+        .delete() \
+        .eq("id", transaction_id) \
+        .eq("user_id", user_id) \
+        .execute()
+
+    return {"message": "Transaction deleted"}
