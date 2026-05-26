@@ -15,6 +15,7 @@ import { supabase } from "./supabase";
 
 function App() {
   const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,9 +48,16 @@ function App() {
       : transactions.filter((t) => t.category === selectedCategory);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initializeSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       setSession(session);
-    });
+      setLoading(false);
+    };
+
+    initializeSession();
 
     const {
       data: { subscription },
@@ -399,6 +407,24 @@ function App() {
     background: "#0f172a",
     borderRadius: "10px",
   };
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          background: "#0f172a",
+          minHeight: "100vh",
+          color: "white",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontSize: "22px",
+        }}
+      >
+        Loading FinMate...
+      </div>
+    );
+  }
 
   if (!session) {
     return (
